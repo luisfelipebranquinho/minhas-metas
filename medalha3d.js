@@ -220,7 +220,7 @@ function montarMedalha(spec, renderer, descartar) {
   // nó da faixa de jiu-jítsu, em tecido
   const tecido = (ponteira) => {
     const t = tex(texturaTecido(spec.cores, spec.pont, ponteira), renderer); descartar.push(t);
-    return mat({ color: "#ffffff", map: t, roughness: 0.85, metalness: 0, sheen: 1, sheenRoughness: 0.45, sheenColor: "#ffffff", bumpMap: t, bumpScale: 1.2 });
+    return mat({ color: "#ffffff", map: t, roughness: 0.92, metalness: 0, sheen: 0.35, sheenRoughness: 0.6, sheenColor: "#9aa4b5", bumpMap: t, bumpScale: 2 });
   };
   const tecLiso = tecido(false), tecPonta = tecido(true);
   const zN = zFrente + 0.05;
@@ -235,12 +235,13 @@ function montarMedalha(spec, renderer, descartar) {
     }
   }
   const no = add(new RoundedBoxGeometry(0.2, 0.25, 0.09, 5, 0.04), tecLiso); no.position.set(0, 0.02, zN + 0.025);
+  const volta = add(new RoundedBoxGeometry(0.21, 0.07, 0.1, 4, 0.03), tecLiso); volta.position.set(0, 0.06, zN + 0.035); volta.rotation.z = -0.35;
 
   // gemas lapidadas (brilhante) com engaste
   if (spec.gemas) {
     const perfil = [new THREE.Vector2(0, -0.05), new THREE.Vector2(0.046, -0.004), new THREE.Vector2(0.05, 0), new THREE.Vector2(0.05, 0.006), new THREE.Vector2(0.03, 0.022), new THREE.Vector2(0, 0.022)];
     const gema = new THREE.LatheGeometry(perfil, 16); descartar.push(gema);
-    const rubi = mat({ color: "#E0112B", metalness: 0, roughness: 0, transmission: 1, ior: 1.77, thickness: 0.08, attenuationColor: "#9a0012", attenuationDistance: 0.06, specularIntensity: 1, iridescence: 0.25, flatShading: true, envMapIntensity: 2.2 });
+    const rubi = mat({ color: "#ff1f3d", emissive: "#5a0010", emissiveIntensity: 0.6, metalness: 0, roughness: 0, transmission: 0.55, ior: 1.77, thickness: 0.05, attenuationColor: "#ff3048", attenuationDistance: 0.4, specularIntensity: 1, specularColor: "#ffffff", clearcoat: 1, clearcoatRoughness: 0, iridescence: 0.35, flatShading: true, envMapIntensity: 3 });
     for (const a of [PI / 4, 3 * PI / 4, -PI / 4, -3 * PI / 4]) {
       const x = 0.775 * Math.cos(a), y = 0.775 * Math.sin(a);
       const gm = add(gema, rubi); gm.rotation.x = PI / 2; gm.position.set(x, y, zFrente + 0.03);
@@ -266,7 +267,7 @@ function montarMedalha(spec, renderer, descartar) {
   const pas = add(new RoundedBoxGeometry(0.62, 0.1, 0.06, 4, 0.025), metal); pas.position.set(0, 1.19, 0);
   const tFita = tex(texturaTecido(spec.cores, spec.pont, true, 512), renderer); descartar.push(tFita);
   tFita.wrapS = tFita.wrapT = THREE.RepeatWrapping;
-  const matFita = mat({ map: tFita, color: "#ffffff", roughness: 0.8, sheen: 1, sheenRoughness: 0.4, sheenColor: "#ffffff", side: THREE.DoubleSide, bumpMap: tFita, bumpScale: 0.8 });
+  const matFita = mat({ map: tFita, color: "#ffffff", roughness: 0.75, sheen: 0.6, sheenRoughness: 0.35, sheenColor: "#c9c2b0", side: THREE.DoubleSide, bumpMap: tFita, bumpScale: 1.5 });
   for (const lado of [-1, 1]) {
     const geo = new THREE.PlaneGeometry(0.36, 1.35, 4, 24);
     const p = geo.attributes.position;
@@ -291,6 +292,7 @@ export function abrirVisualizador(alvo, spec, aoFechar) {
   cena.environment = ambiente;
   const luz = new THREE.DirectionalLight("#fff6e0", 1.6); luz.position.set(2, 3, 4); cena.add(luz);
   const luz2 = new THREE.DirectionalLight("#cfe2ff", 0.6); luz2.position.set(-3, -1, 2); cena.add(luz2);
+  const brilho = new THREE.PointLight("#ffffff", 3, 6); brilho.position.set(0.8, 0.9, 1.6); cena.add(brilho);
 
   const medalha = montarMedalha(spec, renderer, descartar);
   cena.add(medalha);
