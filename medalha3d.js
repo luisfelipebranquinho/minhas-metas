@@ -172,9 +172,9 @@ function montarMedalha(spec, renderer, descartar) {
   const tf = tex(cf, renderer), tfb = tex(cf, renderer, false), tv = tex(cv, renderer), tvb = tex(cv, renderer, false);
   descartar.push(tf, tfb, tv, tvb);
   const zFrente = ESP / 2 + 0.0185;
-  const faceF = mat({ color: M.cor, metalness: 1, roughness: M.rug, map: tf, bumpMap: tfb, bumpScale: 3, clearcoat: 0.7, clearcoatRoughness: 0.06 });
+  const faceF = mat({ color: spec.metal === "negro" ? "#6a6a72" : M.cor, metalness: 1, roughness: M.rug, map: tf, bumpMap: tfb, bumpScale: 3, clearcoat: 0.7, clearcoatRoughness: 0.06 });
   add(new THREE.CircleGeometry(0.985, 128), faceF).position.z = zFrente;
-  const faceV = mat({ color: M.cor, metalness: 1, roughness: M.rug + 0.05, map: tv, bumpMap: tvb, bumpScale: 2.5, clearcoat: 0.5 });
+  const faceV = mat({ color: spec.metal === "negro" ? "#6a6a72" : M.cor, metalness: 1, roughness: M.rug + 0.05, map: tv, bumpMap: tvb, bumpScale: 2.5, clearcoat: 0.5 });
   const v = add(new THREE.CircleGeometry(0.985, 128), faceV); v.position.z = -zFrente; v.rotation.y = PI;
 
   // esmalte vermelho translúcido sobre o guilhochê (medalha de 1 ano)

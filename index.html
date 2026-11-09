@@ -432,7 +432,7 @@ function abrir3D({ marco, faixa, med }){
   const fechar = () => { try { visor3d && visor3d.fechar(); } catch(e){} visor3d = null; el.remove(); };
   el.querySelector(".fechar3d").onclick = fechar;
   el.querySelector(".reset3d").onclick = () => visor3d && visor3d.resetar();
-  Promise.all([import("./medalha3d.js?v=5"), document.fonts ? document.fonts.ready : null]).then(([mod]) => {
+  Promise.all([import("./medalha3d.js?v=6"), document.fonts ? document.fonts.ready : null]).then(([mod]) => {
     if (!el.isConnected) return;
     visor3d = mod.abrirVisualizador(el.querySelector("canvas"), spec);
     setTimeout(() => { const c = document.getElementById("cad3d"); c && c.remove(); }, 250);
