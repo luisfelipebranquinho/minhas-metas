@@ -563,6 +563,7 @@ const concedendo = new Set();
 let faixaPendente = false;
 async function verificarMedalhas(){
   if (!S.metasFresh || !S.medFresh || !S.contaFresh || !S.medCol) return;
+  if (S.metas.some(x => x.teste) || S.medalhas.some(x => x.teste) || (S.conta && S.conta.diasTeste)) { await limparTestes(); return; }
   const g = graduacao();
   for (const m of S.metas){
     if (m.tipo !== "calendario") continue;
@@ -886,7 +887,7 @@ function renderFatal(msg){
 }
 
 function entrar(){
-  S.logado = true; S.authMode = null; S.view = location.hash === LAB_HASH ? "lab" : "inicio";
+  S.logado = true; S.authMode = null; S.view = "inicio";
   if (!S.unsub){
     S.metasLoaded = false;
     S.unsub = S.metasCol.orderBy("criadaEm","asc").onSnapshot(snap => {
@@ -920,7 +921,6 @@ function render(){
   if (S.view === "metas") return renderLista();
   if (S.view === "meta") return renderDetalhe();
   if (S.view === "medalhas") return renderMedalhas();
-  if (S.view === "lab") return renderLab();
   return renderInicio();
 }
 
@@ -1001,7 +1001,7 @@ function renderInicio(){
   const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
   $app.innerHTML = `
     ${header("", null)}
-    <p class="muted" style="font-weight:600" data-act="segredo">${saud},</p>
+    <p class="muted" style="font-weight:600">${saud},</p>
     <h1 style="margin-bottom:22px">${esc(S.conta.usuario)}</h1>
     <button class="card bigmenu" data-act="go" data-v="metas">
       <div class="ic" style="color:var(--accent)">${ICON.target}</div>
@@ -1047,14 +1047,14 @@ function cardMeta(m){
     const status = m.perdida ? "💔 Meta perdida" : c.naoComecou ? `Começa ${fmtDate(m.inicio)}` : c.encerrada ? "Encerrada" : c.batidoHoje ? "✓ Ponto de hoje batido" : c.vacilouHoje ? "😬 Vacilou hoje" : "Falta bater o ponto hoje";
     const cor = c.batidoHoje ? "var(--accent)" : (c.hojeNaMeta ? "var(--today)" : "var(--muted)");
     return `<button class="card mcard" data-act="abrir" data-id="${m.id}">
-      <div class="mhead"><span class="memo">${esc(m.emoji||"🎯")}</span><div style="flex:1;min-width:0"><div class="mtitle">${m.teste ? `<span class="pill" style="background:var(--today-soft);color:var(--today);margin-right:6px">🧪 TESTE</span>` : ""}${esc(m.titulo)}</div>
+      <div class="mhead"><span class="memo">${esc(m.emoji||"🎯")}</span><div style="flex:1;min-width:0"><div class="mtitle">${esc(m.titulo)}</div>
       <div class="small" style="color:${cor};font-weight:700;margin-top:3px">${status}</div></div>${medalhasDa(m).length ? `<span class="medbadge">🏅 ${medalhasDa(m).length}</span>` : `<span class="pill">${c.feitos}/${c.total}</span>`}</div>
       <div class="bar"><i style="width:${c.pct}%"></i></div>
       <div class="mfoot"><span>${c.pct}% concluído</span><span>${c.seq > 0 ? `🔥 ${c.seq} ${c.seq===1?"dia":"dias"} seguidos` : c.naoComecou ? "" : `${c.restantes} restantes`}</span></div>
     </button>`;
   }
   return `<button class="card mcard" data-act="abrir" data-id="${m.id}">
-    <div class="mhead"><span class="memo">${esc(m.emoji||"🎯")}</span><div style="flex:1;min-width:0"><div class="mtitle">${m.teste ? `<span class="pill" style="background:var(--today-soft);color:var(--today);margin-right:6px">🧪 TESTE</span>` : ""}${esc(m.titulo)}</div>
+    <div class="mhead"><span class="memo">${esc(m.emoji||"🎯")}</span><div style="flex:1;min-width:0"><div class="mtitle">${esc(m.titulo)}</div>
     <div class="small" style="color:${m.concluida?"var(--accent)":"var(--muted)"};font-weight:700;margin-top:3px">${m.concluida ? `✓ Concluída em ${fmtDate(m.concluidaEm)}` : "Em andamento"}</div></div><span class="pill">Única</span></div>
   </button>`;
 }
@@ -1067,6 +1067,7 @@ function renderDetalhe(){
       <div class="card">
         <div style="font-size:44px">${esc(m.emoji||"🎯")}</div>
         <h2 style="margin-top:8px">${esc(m.titulo)}</h2>
+        <button class="link small" data-act="editarMeta">✏️ Editar nome</button>
         ${m.motivo ? `<div class="motivo">${esc(m.motivo)}</div>` : ""}
         <button class="btn punch ${m.concluida?"done":""}" data-act="toggleUnica">${m.concluida ? `${ICON.check} Concluída em ${fmtDate(m.concluidaEm)}` : "Marcar como concluída"}</button>
         ${m.concluida ? `<p class="small muted" style="text-align:center;margin-top:8px">Toque de novo para desmarcar.</p>` : ""}
@@ -1123,6 +1124,7 @@ function renderDetalhe(){
         <div style="min-width:0">
           <div style="font-size:30px;line-height:1">${esc(m.emoji||"🎯")}</div>
           <h2 style="margin-top:6px;font-size:23px">${esc(m.titulo)}</h2>
+          <button class="link small" style="padding:2px 0" data-act="editarMeta">✏️ Editar nome</button>
           <p class="small muted" style="margin-top:4px;font-weight:600">${fmtDate(m.inicio)} → ${fmtDate(c.fim)}</p>
         </div>
       </div>
@@ -1195,6 +1197,39 @@ function confirmar(titulo, texto, botao, onOk){
   document.getElementById("okBtn").onclick = () => { fechar(); onOk(); };
 }
 function fechar(){ $layer.innerHTML = ""; }
+
+function abrirEditar(m){
+  let emoji = m.emoji || "🎯";
+  const draw = () => {
+    $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+      <div class="grab"></div>
+      <h2 style="font-size:24px">Editar meta</h2>
+      <form id="fEd">
+        <label for="et">Nome da meta</label>
+        <input id="et" required maxlength="80" value="${esc(m.titulo)}">
+        <label>Ícone</label>
+        <div class="emojis">${EMOJIS.map(e => `<button type="button" data-emo="${e}" class="${emoji===e?"on":""}">${e}</button>`).join("")}</div>
+        <p class="small muted" style="margin-top:12px">Duração, data de início e pontos não mudam.</p>
+        <div class="err" id="eerr"></div>
+        <div class="row2" style="margin-top:8px"><button type="button" class="btn ghost" data-act="fechar">Cancelar</button><button class="btn" type="submit">Salvar</button></div>
+      </form></div></div>`;
+    $layer.querySelectorAll("[data-emo]").forEach(b => b.onclick = () => { const v = document.getElementById("et").value; emoji = b.dataset.emo; draw(); document.getElementById("et").value = v; });
+    document.getElementById("fEd").onsubmit = async ev => {
+      ev.preventDefault();
+      const titulo = document.getElementById("et").value.trim();
+      if (!titulo){ document.getElementById("eerr").textContent = "Dê um nome para a meta."; return; }
+      if (titulo === m.titulo && emoji === (m.emoji || "🎯")) return fechar();
+      fechar();
+      try {
+        await queueWrite(m.id, () => S.metasCol.doc(m.id).update({ titulo, emoji }));
+        for (const x of S.medalhas.filter(x => x.metaId === m.id)) await S.medCol.doc(x.id).update({ titulo, emoji });
+        toast("Meta atualizada ✓");
+      } catch(e){ toast(dbErr(e)); }
+    };
+  };
+  draw();
+  setTimeout(() => { const i = document.getElementById("et"); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 80);
+}
 
 function abrirVacilei(m){
   const n = calc(m).vacilos + 1;
@@ -1314,13 +1349,6 @@ document.addEventListener("click", ev => {
   if (act === "sair") return sair();
   if (act === "criarConta"){ S.authMode = "criar"; S.erro=""; return render(); }
   if (act === "voltarLogin"){ S.authMode = "login"; S.erro=""; return render(); }
-  if (act === "segredo") return toqueSecreto();
-  if (act === "lab") return criarTeste(el.dataset.c);
-  if (act === "labDias") return diasTeste(el.dataset.q === "prox" ? "prox" : +el.dataset.q);
-  if (act === "labMed") return celebrar({ marco:+el.dataset.i, faixa:graduacao().idx, metaId:"teste", inicio:"", titulo:"Prévia de teste", emoji:"🧪", em:todayKey() }, false);
-  if (act === "labFaixa") return celebrar({ kind:"faixa", faixa:+el.dataset.i, total:TIERS[+el.dataset.i].min }, false);
-  if (act === "labPrint"){ const v = document.createElement("div"); v.className = "vitrine"; v.style.display = "none"; document.body.appendChild(v); avisoPrint(); setTimeout(() => v.remove(), 2300); return; }
-  if (act === "labLimpar") return confirmar("Apagar tudo de teste?", "Metas de teste, medalhas de teste e dias de teste somem. Suas metas reais não são tocadas.", "Apagar", limparTestes);
   if (act === "verFaixa"){ const g = graduacao(); celebrar({ kind:"faixa", faixa:g.idx, total:g.total, graus:g.graus }, true); return; }
   if (act === "verMedalha"){ const g = S.medalhas.find(x => x.id === el.dataset.mid); if (g) celebrar(g, true); return; }
   if (act === "abrir"){ S.metaId = el.dataset.id; S.view = "meta"; render(); window.scrollTo(0,0); return; }
@@ -1334,6 +1362,7 @@ document.addEventListener("click", ev => {
   }
   if (act === "excluir" && m && !podeExcluir(situacao(m))){ toast("Esta meta ainda não pode ser excluída 🔒"); return; }
   if (act === "vacilei" && m) return abrirVacilei(m);
+  if (act === "editarMeta" && m) return abrirEditar(m);
   if (act === "desfazerVacilo" && m){
     const k = todayKey(), antes = (m.vacilos||{})[k];
     return confirmar("Desfazer o vacilo de hoje?", "O ponto de hoje volta a ficar batido.", "Desfazer", () =>
@@ -1358,52 +1387,10 @@ document.addEventListener("click", ev => {
 let ultimoDia = todayKey();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && todayKey() !== ultimoDia){ ultimoDia = todayKey(); if (S.logado) render(); } });
 
-/* ---------- aba de testes (escondida) ---------- */
-const LAB_HASH = "#lab-oss-4q7z";
-let toques = [];
-function toqueSecreto(){
-  const agora = Date.now(); toques = toques.filter(t => agora - t < 3000); toques.push(agora);
-  if (toques.length >= 7){ toques = []; S.view = "lab"; render(); window.scrollTo(0,0); }
-}
-window.addEventListener("hashchange", () => { if (location.hash === LAB_HASH && S.logado){ S.view = "lab"; render(); } });
-
-async function criarTeste(cen){
-  const hoje = todayKey(), id = newId();
-  const base = { tipo:"calendario", emoji:"🧪", motivo:"Meta de teste", checks:{}, vacilos:{}, criadaEm:Date.now(), teste:true };
-  let m;
-  if (cen === "medalha7"){
-    m = { ...base, titulo:"Teste · medalha de 7 dias", dias:30, inicio:addDays(hoje,-6) };
-    for (let i=0;i<6;i++) m.checks[addDays(m.inicio,i)] = Date.now();
-  } else if (cen === "cumprir"){
-    m = { ...base, titulo:"Teste · cumprir hoje", dias:7, inicio:addDays(hoje,-6) };
-    for (let i=0;i<6;i++) m.checks[addDays(m.inicio,i)] = Date.now();
-  } else if (cen === "chat"){
-    m = { ...base, titulo:"Teste · 10 dias parado", dias:60, inicio:addDays(hoje,-12) };
-    m.checks[m.inicio] = Date.now(); m.checks[addDays(m.inicio,1)] = Date.now();
-  } else if (cen === "vacilos"){
-    m = { ...base, titulo:"Teste · 10 vacilos", dias:30, inicio:addDays(hoje,-10) };
-    for (let i=0;i<10;i++) m.vacilos[addDays(m.inicio,i)] = { ts:Date.now(), nota:"teste", ponto:null };
-    m.checks[hoje] = Date.now();
-  } else if (cen === "vacilo1"){
-    m = { ...base, titulo:"Teste · bater ponto e vacilar", dias:30, inicio:addDays(hoje,-3) };
-    for (let i=0;i<4;i++) m.checks[addDays(m.inicio,i)] = Date.now();
-  } else if (cen === "unica"){
-    m = { tipo:"simples", titulo:"Teste · meta única", emoji:"🧪", motivo:"Meta de teste", concluida:false, criadaEm:Date.now(), teste:true };
-  } else if (cen === "unicaParada"){
-    m = { tipo:"simples", titulo:"Teste · meta única parada", emoji:"🧪", motivo:"Meta de teste", concluida:false, criadaEm:Date.now() - 11*86400000, teste:true };
-  }
-  try { await S.metasCol.doc(id).set(m); S.metaId = id; S.view = "meta"; render(); window.scrollTo(0,0); toast("Meta de teste criada 🧪"); }
-  catch(e){ toast(dbErr(e)); }
-}
-async function diasTeste(qtd){
-  const g = graduacao();
-  const add = qtd === "prox" ? (g.prox ? g.faltam : 0) : qtd;
-  if (!add){ toast("Já está na faixa máxima"); return; }
-  const novo = { diasArquivados: ((S.conta.diasArquivados)||0) + add, diasTeste: ((S.conta.diasTeste)||0) + add };
-  try { await S.contaRef.update(novo); S.conta = { ...S.conta, ...novo }; render(); verificarMedalhas(); toast(`+${add} dias de teste`); }
-  catch(e){ toast(dbErr(e)); }
-}
+/* ---------- limpeza única dos dados criados pela antiga aba de testes ---------- */
+let limpandoTestes = false;
 async function limparTestes(){
+  if (limpandoTestes) return; limpandoTestes = true;
   try {
     for (const m of S.metas.filter(x => x.teste)) await S.metasCol.doc(m.id).delete();
     for (const x of S.medalhas.filter(x => x.teste)) await S.medCol.doc(x.id).delete();
@@ -1413,44 +1400,8 @@ async function limparTestes(){
     const real = graduacao().idx; // já sem os testes
     await S.contaRef.update({ diasArquivados: arq, diasTeste: 0, faixaVista: real });
     S.conta.faixaVista = real;
-    render(); toast("Testes apagados ✓");
-  } catch(e){ toast(dbErr(e)); }
-}
-function renderLab(){
-  const g = graduacao();
-  const nTeste = S.metas.filter(x => x.teste).length, nMed = S.medalhas.filter(x => x.teste).length;
-  const btn = (act, txt, extra="") => `<button class="btn ghost" style="justify-content:flex-start;text-align:left;margin-top:8px" data-act="${act}" ${extra}>${txt}</button>`;
-  $app.innerHTML = `${header("🧪 Laboratório", "inicio")}
-    <p class="muted" style="margin:6px 0 18px">Aba escondida para testar. Tudo criado aqui fica marcado como teste e some no botão de limpar.</p>
-    <div class="card">
-      <h3 style="font-size:18px">Cenários de meta</h3>
-      <p class="small muted" style="margin-top:4px">Cria uma meta pronta e abre ela.</p>
-      ${btn('lab" data-c="medalha7', "🏅 Falta 1 dia para a medalha de 7 dias<br><span class='small muted'>Bata o ponto de hoje</span>")}
-      ${btn('lab" data-c="cumprir', "🏆 Meta de 7 dias que termina hoje<br><span class='small muted'>Bata o ponto: medalha + meta cumprida + excluir liberado</span>")}
-      ${btn('lab" data-c="chat', "💬 10 dias sem ponto<br><span class='small muted'>Abre a conversa</span>")}
-      ${btn('lab" data-c="vacilo1', "😬 Ponto batido hoje<br><span class='small muted'>Teste o botão Vacilei e o desfazer</span>")}
-      ${btn('lab" data-c="vacilos', "💔 Já tem 10 vacilos, ponto batido hoje<br><span class='small muted'>Vacilei de novo = perde a meta</span>")}
-      ${btn('lab" data-c="unica', "✅ Meta única<br><span class='small muted'>Concluir e excluir</span>")}
-      ${btn('lab" data-c="unicaParada', "⏳ Meta única criada há 11 dias<br><span class='small muted'>Chat antes de excluir</span>")}
-    </div>
-    <div class="card" style="margin-top:14px">
-      <h3 style="font-size:18px">Faixa</h3>
-      <p class="small muted" style="margin-top:4px">Agora: ${esc(g.nome)}${g.graus?` · ${g.graus} grau${g.graus>1?"s":""}`:""} · ${g.total} dias${S.conta.diasTeste ? ` (${S.conta.diasTeste} de teste)` : ""}</p>
-      ${btn('labDias" data-q="prox', `🥋 Pular para a próxima faixa${g.prox ? ` (${esc(g.prox.nome)}, +${g.faltam} dias)` : ""}`)}
-      ${btn('labDias" data-q="10', "➕ Somar 10 dias (ver graus)")}
-    </div>
-    <div class="card" style="margin-top:14px">
-      <h3 style="font-size:18px">Só ver as animações</h3>
-      <p class="small muted" style="margin-top:4px">Não salva nada.</p>
-      <div class="chips" style="margin-top:10px">${MARCOS.map((mk,i) => `<button data-act="labMed" data-i="${i}">🏅 ${esc(mk.nome)}</button>`).join("")}</div>
-      <div class="chips" style="margin-top:10px">${TIERS.map((t,i) => `<button data-act="labFaixa" data-i="${i}">🥋 ${esc(t.nome.replace("Faixa ",""))}</button>`).join("")}</div>
-      ${btn("labPrint", "📵 Aviso de print")}
-    </div>
-    <div class="card" style="margin-top:14px">
-      <h3 style="font-size:18px">Limpar</h3>
-      <p class="small muted" style="margin-top:4px">${nTeste} meta${nTeste===1?"":"s"} de teste · ${nMed} medalha${nMed===1?"":"s"} de teste · ${(S.conta.diasTeste)||0} dias de teste</p>
-      <button class="btn danger" style="margin-top:10px" data-act="labLimpar">🧹 Apagar tudo de teste</button>
-    </div>`;
+    render();
+  } catch(e){} finally { limpandoTestes = false; }
 }
 
 /* ---------- só celular ---------- */
