@@ -790,9 +790,16 @@ async function decifrar(dados, iv){
   const pt = await crypto.subtle.decrypt({ name:"AES-GCM", iv: unb64(iv) }, CHAVE, unb64(dados));
   return JSON.parse(new TextDecoder().decode(pt));
 }
-async function guardarChaveSessao(){ try { ss.set("mm_k", b64(await crypto.subtle.exportKey("raw", CHAVE))); } catch(e){} }
+async function guardarChaveSessao(lembrar){
+  try {
+    const k = b64(await crypto.subtle.exportKey("raw", CHAVE));
+    ss.set("mm_k", k);
+    try { lembrar ? localStorage.setItem("mm_k", k) : localStorage.removeItem("mm_k"); } catch(e){}
+  } catch(e){}
+}
 async function lerChaveSessao(){
-  const k = ss.get("mm_k"); if (!k) return null;
+  let k = ss.get("mm_k"); if (!k){ try { k = localStorage.getItem("mm_k"); } catch(e){} }
+  if (!k) return null;
   try { return await crypto.subtle.importKey("raw", unb64(k), "AES-GCM", true, ["encrypt","decrypt"]); } catch(e){ return null; }
 }
 
@@ -910,6 +917,7 @@ function entrar(){
 }
 async function sair(){
   ss.del("mm_k"); CHAVE = null;
+  try { localStorage.removeItem("mm_k"); } catch(e){}
   try { if (TOKEN) await rpc("sair", { p_token:TOKEN }); } catch(e){}
   lsSet("mm_t", null); TOKEN = null;
   location.reload();
@@ -938,6 +946,10 @@ function renderAuth(){
       <input id="p" type="password" name="password" autocomplete="${criar ? "new-password" : "current-password"}" required minlength="6">
       ${criar ? `<label for="p2">Confirmar senha</label><input id="p2" type="password" autocomplete="new-password" required minlength="6">
       <p class="small" style="margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--today-soft)">🔐 A senha também é a chave que tranca seus dados. <b>Guarde bem</b>: sem ela não dá para recuperar as metas — nem nós conseguimos ler.</p>` : ""}
+      <label style="display:flex;align-items:center;gap:10px;margin-top:16px;font-weight:600;cursor:pointer">
+        <input id="lembrar" type="checkbox" ${lsGet("mm_lembrar") === "0" ? "" : "checked"} style="width:22px;height:22px;accent-color:var(--accent);flex:none">
+        Manter conectado neste celular
+      </label>
       <div class="err" id="err">${esc(S.erro)}</div>
       <button class="btn" style="margin-top:10px" type="submit">${criar ? "Criar e entrar" : "Entrar"}</button>
     </form>
@@ -977,7 +989,9 @@ async function onAuth(ev){
       try { await decifrar(r.verificador, r.verificador_iv); } catch(e){ CHAVE = null; return fail("Não consegui destrancar seus dados com essa senha."); }
     }
     lsSet("mm_t", TOKEN);
-    await guardarChaveSessao();
+    const lembrar = !!document.getElementById("lembrar")?.checked;
+    lsSet("mm_lembrar", lembrar ? "1" : "0");
+    await guardarChaveSessao(lembrar);
     try { localStorage.setItem("mm_u", u); } catch(e){}
     await Banco.carregar();
     S.conta = { ...Banco.conta }; S.erro = "";
@@ -1013,7 +1027,6 @@ function renderInicio(){
       <div><h3>Medalhas</h3><p class="muted small" style="margin-top:3px">${esc(graduacao().nome)}${graduacao().graus ? ` · ${graduacao().graus} grau${graduacao().graus>1?"s":""}` : ""} · ${S.medalhas.length} medalha${S.medalhas.length===1?"":"s"}</p></div>
       <span class="chev">${ICON.chev}</span>
     </button>
-    ${cartaoInstalar()}
     ${pend.length || ok.length || conversar.length ? `
     <div class="card today-list">
       <h3>Ponto de hoje</h3>
