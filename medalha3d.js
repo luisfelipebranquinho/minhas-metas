@@ -167,7 +167,7 @@ function montarMedalha(spec, renderer, descartar) {
   add(disco, metal);
 
   // face da frente e verso com gravações (mapa de cor + relevo)
-  const S = Math.min(4096, renderer.capabilities.maxTextureSize, 2048 * Math.min(2, Math.ceil(window.devicePixelRatio || 1)));
+  const S = Math.min(renderer.capabilities.maxTextureSize, (window.devicePixelRatio || 1) >= 2 ? 3072 : 2048);
   const cf = texturaFrente(spec, S), cv = texturaVerso(spec, S);
   const tf = tex(cf, renderer), tfb = tex(cf, renderer, false), tv = tex(cv, renderer), tvb = tex(cv, renderer, false);
   descartar.push(tf, tfb, tv, tvb);
@@ -288,7 +288,7 @@ function montarMedalha(spec, renderer, descartar) {
 export function abrirVisualizador(alvo, spec, aoFechar) {
   const descartar = [];
   const renderer = new THREE.WebGLRenderer({ canvas: alvo, antialias: true, alpha: true, powerPreference: "high-performance" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   const cena = new THREE.Scene();
@@ -312,17 +312,23 @@ export function abrirVisualizador(alvo, spec, aoFechar) {
   ctr.autoRotate = true; ctr.autoRotateSpeed = 1.6;
   ctr.addEventListener("start", () => { ctr.autoRotate = false; });
 
+  let vivo = true, sujo = true;
   function ajustar() {
     const w = alvo.clientWidth, h = alvo.clientHeight;
-    renderer.setSize(w, h, false); camera.aspect = w / h;
+    renderer.setSize(w, h, false); camera.aspect = w / h; sujo = true;
     camera.position.z = w / h < 0.7 ? 6.6 : 5.6;
     camera.updateProjectionMatrix();
   }
   ajustar();
   const ro = new ResizeObserver(ajustar); ro.observe(alvo);
 
-  let vivo = true;
-  renderer.setAnimationLoop(() => { if (!vivo) return; ctr.update(); renderer.render(cena, camera); });
+  // só desenha quando algo muda (economiza bateria e deixa o celular leve)
+  ctr.addEventListener("change", () => { sujo = true; });
+  renderer.setAnimationLoop(() => {
+    if (!vivo) return;
+    const mudou = ctr.update();
+    if (mudou || sujo || ctr.autoRotate){ renderer.render(cena, camera); sujo = false; }
+  });
 
   return {
     resetar() { ctr.reset(); camera.position.set(0, 0.35, camera.position.z); ctr.target.set(0, 0.35, 0); ctr.autoRotate = true; },

@@ -67,7 +67,7 @@ label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
 .bigmenu h3{font-size:24px}
 .chev{margin-left:auto;color:var(--muted)}
 .today-list{margin-top:22px}
-.today-list h3{font-family:Manrope;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.today-list h3{font-family:Manrope,system-ui,sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
 .trow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
 .trow:first-of-type{border-top:0}
 .dot{width:10px;height:10px;border-radius:99px;flex:none}
@@ -90,16 +90,16 @@ label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
 .ring svg{transform:rotate(-90deg)}
 .ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
 .ring b{font-family:Fraunces;font-size:28px;display:block;line-height:1}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
-.stat{background:var(--bg);border-radius:14px;padding:12px 8px;text-align:center}
-.stat b{display:block;font-size:22px;font-family:Fraunces}
-.stat span{font-size:12px;color:var(--muted);font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:16px}
+.stat{background:var(--bg);border-radius:14px;padding:11px 4px;text-align:center;min-width:0}
+.stat b{display:block;font-size:21px;font-family:Fraunces,Georgia,serif;white-space:nowrap}
+.stat span{font-size:11px;color:var(--muted);font-weight:600;line-height:1.2;display:block}
 .punch{margin-top:16px;padding:20px;font-size:18px;border-radius:18px}
 .punch.done{background:var(--accent-soft);color:var(--accent)}
-.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:18px}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:18px}
 .wk>div{text-align:center;font-size:11px;font-weight:800;color:var(--muted);padding-bottom:2px}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px}
-.day{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:15px;position:relative;background:var(--bg);color:var(--muted);border:2px solid transparent}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:6px}
+.day{aspect-ratio:1;min-width:0;padding:0;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:15px;position:relative;background:var(--bg);color:var(--muted);border:2px solid transparent}
 .day small{font-size:9px;font-weight:700;opacity:.8;line-height:1;margin-top:2px}
 .day.done{background:var(--accent);color:var(--accent-ink)}
 .day.miss{background:var(--miss-soft);color:var(--miss)}
@@ -164,14 +164,6 @@ label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
 .medcell b{font-size:14px;margin-top:6px}
 .medcell span{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 .medbadge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:800;padding:4px 9px;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E2B13C);color:#4a3000}
-.duo{position:relative;display:inline-block;line-height:0;vertical-align:middle}
-.duo>.fa,.duo>.fb{display:block;-webkit-mask-size:48px 48px;mask-size:48px 48px;-webkit-mask-repeat:repeat;mask-repeat:repeat;filter:brightness(1.3) saturate(1.15)}
-.duo>.fa{-webkit-mask-image:var(--mA);mask-image:var(--mA)}
-.duo>.fb{position:absolute;inset:0;-webkit-mask-image:var(--mB);mask-image:var(--mB);visibility:hidden}
-html.fxb .duo>.fa{visibility:hidden}
-html.fxb .duo>.fb{visibility:visible}
-html.semduo .duo>.fa{-webkit-mask-image:none;mask-image:none;filter:none;visibility:visible}
-html.semduo .duo>.fb{display:none}
 .v3d{position:fixed;inset:0;z-index:40;background:radial-gradient(circle at 50% 40%,#3a2c0c 0%,#120e06 50%,#050505 85%);color:#fff;animation:fade .25s;overflow:hidden}
 .v3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
 .v3d .topo{position:absolute;left:0;right:0;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 10px;pointer-events:none}
@@ -184,9 +176,6 @@ html.semduo .duo>.fb{display:none}
 .v3d .cad{position:absolute;inset:0;z-index:2;display:grid;place-items:center;text-align:center;pointer-events:none}
 .v3d .marca{z-index:2}
 .cadeado{display:inline-block;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.14);font-size:12px;font-weight:800;letter-spacing:.06em}
-.duoCanvas{-webkit-mask-image:var(--mA);mask-image:var(--mA);-webkit-mask-size:48px 48px;mask-size:48px 48px;filter:brightness(1.3) saturate(1.1)}
-html.fxb .duoCanvas{-webkit-mask-image:var(--mB);mask-image:var(--mB)}
-html.semduo .duoCanvas{-webkit-mask-image:none;mask-image:none;filter:none}
 .protegido,.protegido *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .protegido svg{pointer-events:none}
 .vitrine{position:relative;overflow:hidden;border-radius:24px;padding:18px 14px 22px;background:radial-gradient(circle at 50% 0%,#3a2c0c,#120e06 60%,#050505);color:#fff;margin-top:12px}
@@ -277,38 +266,8 @@ function seloQR(){ // QR discreto: quem fotografar a tela com outro celular rece
   return `<svg class="selo" viewBox="0 0 ${t} ${t}" shape-rendering="crispEdges" aria-hidden="true"><rect width="${t}" height="${t}" rx="2" fill="#F4D27A" opacity=".24"/><path transform="translate(${q} ${q})" d="${QR_D}" fill="#0b0904"/></svg>`;
 }
 function codigoMedalha(id){ let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } const x = (h>>>0).toString(16).toUpperCase().padStart(8,"0"); return `#${x.slice(0,4)}-${x.slice(4)}`; }
-/* drible das duas metades: cada metade da imagem aparece em quadros alternados.
-   O olho junta as duas; o print pega só uma (fica quebrado). */
-function duo(fn, nivel, opts){
-  return `<span class="duo">` + `<span class="fa">${fn(nivel, { ...opts, begin:"0" })}</span><span class="fb">${fn(nivel, { ...opts, begin:"0" })}</span></span>`;
-}
-const medalDuo = (n, o) => duo(medalSVG, n, o);
-const faixaDuo = (n, o) => duo(faixaSVG, n, o);
-(function iniciarDuo(){
-  const N = 16, C = 3, cvA = document.createElement("canvas"), cvB = document.createElement("canvas");
-  cvA.width = cvA.height = cvB.width = cvB.height = N * C;
-  const a = cvA.getContext("2d"), b = cvB.getContext("2d");
-  for (let y=0;y<N;y++) for (let x=0;x<N;x++){
-    const on = Math.random() < .5;
-    (on ? a : b).fillRect(x*C, y*C, C, C);
-  }
-  const raiz = document.documentElement.style;
-  raiz.setProperty("--mA", `url(${cvA.toDataURL()})`);
-  raiz.setProperty("--mB", `url(${cvB.toDataURL()})`);
-  const reduz = matchMedia("(prefers-reduced-motion: reduce)");
-  let ult = 0, lentos = 0, rapidos = 0, par = false;
-  function quadro(t){
-    const dt = ult ? t - ult : 16; ult = t;
-    // se a tela estiver lenta (ex.: modo economia), piscar ficaria visível: mostra a imagem normal
-    if (dt > 26) { lentos++; rapidos = 0; } else { rapidos++; if (rapidos > 30) lentos = 0; }
-    const desliga = lentos > 6 || reduz.matches;
-    document.documentElement.classList.toggle("semduo", desliga);
-    par = !par;
-    document.documentElement.classList.toggle("fxb", par && !desliga);
-    requestAnimationFrame(quadro);
-  }
-  requestAnimationFrame(quadro);
-})();
+const medalDuo = (n, o) => medalSVG(n, o);
+const faixaDuo = (n, o) => faixaSVG(n, o);
 function marcaDagua(){ const nome = (S.conta && S.conta.usuario) || ""; const txt = esc(`${nome} · ${fmtDate(todayKey())} · MINHAS METAS`.toUpperCase()); return `<div class="marca" aria-hidden="true">${Array(60).fill(`<span>${txt}</span>`).join("")}</div>`; }
 function medalSVG(nivel, opts = {}){
   const t = tierOf(nivel), mk = MARCOS[Math.min(opts.marco ?? 0, MARCOS.length-1)];
@@ -462,7 +421,7 @@ function abrir3D({ marco, faixa, med }){
   };
   const el = document.createElement("div");
   el.className = "v3d protegido";
-  el.innerHTML = `${marcaDagua()}<canvas class="duoCanvas" aria-label="Medalha ${esc(mk.nome)} em 3D"></canvas>
+  el.innerHTML = `${marcaDagua()}<canvas aria-label="Medalha ${esc(mk.nome)} em 3D"></canvas>
     <div class="cad" id="cad3d"><div><div class="spin" style="border-color:rgba(255,255,255,.15);border-top-color:#F1C24E"></div><p class="small" style="opacity:.75">Forjando a medalha…</p></div></div>
     <div class="topo"><span class="cadeado">${bloqueada ? "🔒 BLOQUEADA" : "🏅 CONQUISTADA"}</span><button class="fechar3d" aria-label="Fechar">✕</button></div>
     <div class="rodape"><b>${esc(mk.nome)} seguidos</b>
@@ -473,7 +432,7 @@ function abrir3D({ marco, faixa, med }){
   const fechar = () => { try { visor3d && visor3d.fechar(); } catch(e){} visor3d = null; el.remove(); };
   el.querySelector(".fechar3d").onclick = fechar;
   el.querySelector(".reset3d").onclick = () => visor3d && visor3d.resetar();
-  Promise.all([import("./medalha3d.js?v=4"), document.fonts ? document.fonts.ready : null]).then(([mod]) => {
+  Promise.all([import("./medalha3d.js?v=5"), document.fonts ? document.fonts.ready : null]).then(([mod]) => {
     if (!el.isConnected) return;
     visor3d = mod.abrirVisualizador(el.querySelector("canvas"), spec);
     setTimeout(() => { const c = document.getElementById("cad3d"); c && c.remove(); }, 250);
@@ -952,17 +911,17 @@ function entrar(){
     S.unsub = S.metasCol.orderBy("criadaEm","asc").onSnapshot(snap => {
       S.metas = snap.docs.map(d => ({ id:d.id, ...d.data() })).sort((a,b) => (a.criadaEm||0) - (b.criadaEm||0));
       S.metasLoaded = true; S.metasFresh = true; S.offline = false;
-      render(); verificarMedalhas();
+      atualizarTela();
     });
     S.contaRef.onSnapshot(snap => {
       S.conta = snap.data(); S.contaFresh = true;
-      if (S.logado) { render(); verificarMedalhas(); }
+      if (S.logado) atualizarTela();
     });
     S.medCol = S.contaRef.collection("medalhas");
     S.medCol.orderBy("ts","asc").onSnapshot(snap => {
       S.medalhas = snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(x => typeof x.marco === "number" && MARCOS[x.marco]).sort((a,b) => (a.ts||0) - (b.ts||0));
       S.medLoaded = true; S.medFresh = true;
-      render(); verificarMedalhas();
+      atualizarTela();
     });
   }
   render();
@@ -976,6 +935,12 @@ async function sair(){
 }
 
 /* ---------- telas ---------- */
+// várias mudanças seguidas (ex.: salvar meta + medalha) viram um só redesenho
+let telaPendente = false;
+function atualizarTela(){
+  if (telaPendente) return; telaPendente = true;
+  requestAnimationFrame(() => { telaPendente = false; render(); verificarMedalhas(); });
+}
 function render(){
   if (!S.logado) return renderAuth();
   if (S.view === "metas") return renderLista();
@@ -1169,8 +1134,7 @@ function renderDetalhe(){
   else if (c.naoComecou) punch = `<button class="btn ghost punch" disabled>A meta começa em ${fmtDate(m.inicio)}</button>`;
   else if (c.encerrada) punch = `<div class="btn punch done" style="cursor:default">${c.feitos === c.total ? "🏆 Meta cumprida!" : `Meta encerrada em ${fmtDate(c.fim)}`}</div>`;
   else if (c.batidoHoje) punch = `<button class="btn punch done" data-act="dia" data-k="${c.hoje}">${ICON.check} Ponto batido hoje às ${fmtTime(m.checks[c.hoje])}</button>
-      <button class="vacilei" data-act="vacilei">😬 Vacilei</button>
-      <p class="small muted" style="text-align:center;margin-top:6px">Vacilos: ${c.vacilos}/${MAX_VACILOS}</p>`;
+      <button class="vacilei" data-act="vacilei">😬 Vacilei</button>`;
   else if (c.vacilouHoje){ const v = m.vacilos[c.hoje];
     punch = `<div class="punch" style="margin-top:16px;padding:16px;border-radius:18px;background:var(--miss-soft);color:var(--miss);text-align:center">
       <div style="font-weight:800;font-size:17px">😬 Vacilou hoje às ${fmtTime(v.ts)}</div>
@@ -1195,9 +1159,10 @@ function renderDetalhe(){
         </div>
       </div>
       <div class="stats">
-        <div class="stat"><b>🔥 ${c.seq}</b><span>em sequência</span></div>
-        <div class="stat"><b>${c.restantes}</b><span>dias restantes</span></div>
-        <div class="stat"><b style="color:${c.falhas?"var(--miss)":"inherit"}">${c.falhas}</b><span>sem ponto · ${c.vacilos}/${MAX_VACILOS} 😬</span></div>
+        <div class="stat"><b>🔥${c.seq}</b><span>seguidos</span></div>
+        <div class="stat"><b>${c.restantes}</b><span>restantes</span></div>
+        <div class="stat"><b style="color:${c.falhas?"var(--miss)":"inherit"}">${c.falhas}</b><span>sem ponto</span></div>
+        <div class="stat"><b style="color:${c.vacilos >= MAX_VACILOS - 2 ? "var(--miss)" : "inherit"}">${c.vacilos}<small style="font-size:13px;opacity:.6">/${MAX_VACILOS}</small></b><span>vacilos</span></div>
       </div>
       ${m.motivo ? `<div class="motivo">${esc(m.motivo)}</div>` : ""}
       ${punch}
@@ -1256,7 +1221,7 @@ function gravarDia(m, k, val){
 }
 
 function confirmar(titulo, texto, botao, onOk){
-  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet">
     <div class="grab"></div><h2 style="font-size:22px">${esc(titulo)}</h2><p class="muted" style="margin-top:6px">${esc(texto)}</p>
     <div class="row2" style="margin-top:20px"><button class="btn ghost" data-act="fechar">Cancelar</button><button class="btn danger" id="okBtn">${esc(botao)}</button></div>
   </div></div>`;
@@ -1292,7 +1257,7 @@ async function instalar(){
     : passo(1, "Toque no menu <b>⋮</b> do navegador (canto de cima).")
       + passo(2, "Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.")
       + passo(3, "Confirme em <b>Instalar</b>.");
-  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet">
     <div class="grab"></div>
     <div style="display:flex;align-items:center;gap:12px"><img src="icon-180.png" alt="" width="48" height="48" style="border-radius:12px"><h2 style="font-size:23px">Instalar o Minhas Metas</h2></div>
     ${passos}
@@ -1304,7 +1269,7 @@ async function instalar(){
 function abrirEditar(m){
   let emoji = m.emoji || "🎯";
   const draw = () => {
-    $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+    $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet">
       <div class="grab"></div>
       <h2 style="font-size:24px">Editar meta</h2>
       <form id="fEd">
@@ -1340,7 +1305,7 @@ function abrirVacilei(m){
   const aviso = perde
     ? `<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--miss);color:#fff;font-weight:700">💔 Esse seria o ${n}º vacilo. O limite é ${MAX_VACILOS} — se confirmar, a meta será perdida.</div>`
     : `<div style="margin-top:12px;padding:10px 14px;border-radius:12px;background:${ultimo ? "var(--today-soft)" : "var(--bg)"};font-weight:700">Vacilo ${n} de ${MAX_VACILOS}${ultimo ? " — ⚠️ é o último permitido. O próximo faz você perder a meta." : n >= MAX_VACILOS - 2 ? " — atenção, tá chegando no limite." : ""}</div>`;
-  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet">
     <div class="grab"></div>
     <div style="font-size:40px">😬</div>
     <h2 style="font-size:24px;margin-top:6px">Vacilou? Acontece.</h2>
@@ -1365,7 +1330,7 @@ const EMOJIS = ["🚭","🎯","💪","🏃","💧","📚","🥗","💰","🧘","
 function abrirNova(){
   const f = { tipo:"calendario", titulo:"", dias:60, inicio: todayKey(), emoji:"🚭", motivo:"" };
   const draw = () => {
-    $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+    $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet">
       <div class="grab"></div>
       <h2 style="font-size:24px">Nova meta</h2>
       <form id="fNova">
