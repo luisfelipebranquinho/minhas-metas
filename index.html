@@ -1013,6 +1013,7 @@ function renderInicio(){
       <div><h3>Medalhas</h3><p class="muted small" style="margin-top:3px">${esc(graduacao().nome)}${graduacao().graus ? ` · ${graduacao().graus} grau${graduacao().graus>1?"s":""}` : ""} · ${S.medalhas.length} medalha${S.medalhas.length===1?"":"s"}</p></div>
       <span class="chev">${ICON.chev}</span>
     </button>
+    ${cartaoInstalar()}
     ${pend.length || ok.length || conversar.length ? `
     <div class="card today-list">
       <h3>Ponto de hoje</h3>
@@ -1198,6 +1199,43 @@ function confirmar(titulo, texto, botao, onOk){
 }
 function fechar(){ $layer.innerHTML = ""; }
 
+/* ---------- instalar como app (ícone na tela inicial) ---------- */
+let pedidoInstalar = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); pedidoInstalar = e; if (S.logado && S.view === "inicio") render(); });
+window.addEventListener("appinstalled", () => { pedidoInstalar = null; lsSet("mm_instalado", "1"); if (S.logado) render(); });
+const rodandoComoApp = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const ehIOS = () => /iPhone|iPod|iPad/i.test(navigator.userAgent);
+function cartaoInstalar(){
+  if (rodandoComoApp() || lsGet("mm_instalado") || (Date.now() - (+lsGet("mm_sem_instalar") || 0) < 7*86400000)) return "";
+  return `<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:14px">
+    <img src="icon-180.png" alt="" width="52" height="52" style="border-radius:14px;flex:none">
+    <div style="flex:1;min-width:0"><b>Instalar como app</b><p class="small muted" style="margin-top:2px">Ícone na tela inicial e abre em tela cheia.</p>
+      <div style="display:flex;gap:14px;margin-top:8px;align-items:center"><button class="btn" style="width:auto;padding:9px 16px;font-size:14px" data-act="instalar">📲 Instalar</button><button class="link small" data-act="naoInstalar">Agora não</button></div>
+    </div></div>`;
+}
+async function instalar(){
+  if (pedidoInstalar){
+    pedidoInstalar.prompt();
+    try { const r = await pedidoInstalar.userChoice; if (r.outcome === "accepted") lsSet("mm_instalado", "1"); } catch(e){}
+    pedidoInstalar = null; render(); return;
+  }
+  const passo = (n, t) => `<div style="display:flex;gap:12px;align-items:flex-start;margin-top:14px"><span style="flex:none;width:28px;height:28px;border-radius:99px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800">${n}</span><p style="margin-top:3px">${t}</p></div>`;
+  const passos = ehIOS()
+    ? passo(1, "Toque no botão <b>Compartilhar</b> (quadrado com seta ⬆️). Se não aparecer na barra, toque antes em <b>•••</b>.")
+      + passo(2, "Role a lista e toque em <b>Adicionar à Tela de Início</b>.")
+      + passo(3, "Deixe ligado <b>Abrir como App Web</b> (se aparecer) e toque em <b>Adicionar</b>.")
+    : passo(1, "Toque no menu <b>⋮</b> do navegador (canto de cima).")
+      + passo(2, "Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.")
+      + passo(3, "Confirme em <b>Instalar</b>.");
+  $layer.innerHTML = `<div class="overlay" data-act="fechar"><div class="sheet" onclick="event.stopPropagation()">
+    <div class="grab"></div>
+    <div style="display:flex;align-items:center;gap:12px"><img src="icon-180.png" alt="" width="48" height="48" style="border-radius:12px"><h2 style="font-size:23px">Instalar o Minhas Metas</h2></div>
+    ${passos}
+    <p class="small muted" style="margin-top:16px">Depois é só abrir pelo ícone <b>Metas</b> na tela inicial. Na primeira vez, entre com seu usuário e senha de novo.</p>
+    <button class="btn" style="margin-top:16px" data-act="fechar">Entendi</button>
+  </div></div>`;
+}
+
 function abrirEditar(m){
   let emoji = m.emoji || "🎯";
   const draw = () => {
@@ -1363,6 +1401,8 @@ document.addEventListener("click", ev => {
   if (act === "excluir" && m && !podeExcluir(situacao(m))){ toast("Esta meta ainda não pode ser excluída 🔒"); return; }
   if (act === "vacilei" && m) return abrirVacilei(m);
   if (act === "editarMeta" && m) return abrirEditar(m);
+  if (act === "instalar") return instalar();
+  if (act === "naoInstalar"){ lsSet("mm_sem_instalar", String(Date.now())); render(); return; }
   if (act === "desfazerVacilo" && m){
     const k = todayKey(), antes = (m.vacilos||{})[k];
     return confirmar("Desfazer o vacilo de hoje?", "O ponto de hoje volta a ficar batido.", "Desfazer", () =>
