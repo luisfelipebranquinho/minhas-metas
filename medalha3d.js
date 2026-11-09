@@ -123,15 +123,19 @@ function texturaTecido(cores, pont, ponteira, S = 512, vertical = true) {
   if (ponteira) {
     g.fillStyle = pont; g.fillRect(0, H * 0.58, S, H * 0.2);
   }
-  // trama
-  g.globalAlpha = 0.16;
-  for (let y = 0; y < H; y += 6) for (let x = (y / 6) % 2 ? 0 : 3; x < S; x += 6) { g.fillStyle = "#000"; g.fillRect(x, y, 3, 3); }
-  g.globalAlpha = 0.10; g.fillStyle = "#fff";
-  for (let y = 0; y < H; y += 6) for (let x = (y / 6) % 2 ? 3 : 0; x < S; x += 6) g.fillRect(x, y + 1, 3, 1);
-  // costuras
-  g.globalAlpha = 0.35; g.strokeStyle = "#000"; g.setLineDash([10, 8]); g.lineWidth = 2;
-  for (const x of [S * 0.12, S * 0.88]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
-  g.globalAlpha = 1;
+  // trama (tecido de algodão trançado)
+  g.globalAlpha = 0.30;
+  for (let y = 0; y < H; y += 8) for (let x = (y / 8) % 2 ? 0 : 4; x < S; x += 8) { g.fillStyle = "#000"; g.fillRect(x, y, 4, 4); }
+  g.globalAlpha = 0.22; g.fillStyle = "#fff";
+  for (let y = 0; y < H; y += 8) for (let x = (y / 8) % 2 ? 4 : 0; x < S; x += 8) g.fillRect(x, y + 1, 4, 2);
+  // costuras paralelas, como numa faixa de verdade
+  g.globalAlpha = 0.55; g.setLineDash([9, 6]); g.lineWidth = 3;
+  for (let i = 1; i < 9; i++) {
+    const x = S * i / 9;
+    g.strokeStyle = "#000"; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,.5)"; g.beginPath(); g.moveTo(x + 2, 0); g.lineTo(x + 2, H); g.stroke();
+  }
+  g.globalAlpha = 1; g.setLineDash([]);
   return c;
 }
 
@@ -218,11 +222,12 @@ function montarMedalha(spec, renderer, descartar) {
   est.position.set(0, 0.47, zFrente + 0.004);
 
   // nó da faixa de jiu-jítsu, em tecido
-  const tecido = (ponteira) => {
+  const tecido = (ponteira, deitado) => {
     const t = tex(texturaTecido(spec.cores, spec.pont, ponteira), renderer); descartar.push(t);
-    return mat({ color: "#ffffff", map: t, roughness: 0.92, metalness: 0, sheen: 0.35, sheenRoughness: 0.6, sheenColor: "#9aa4b5", bumpMap: t, bumpScale: 2 });
+    if (deitado){ t.center.set(0.5, 0.5); t.rotation = PI / 2; }
+    return mat({ color: "#ffffff", map: t, roughness: 0.88, metalness: 0, sheen: 0.45, sheenRoughness: 0.55, sheenColor: "#b7bfcc", bumpMap: t, bumpScale: 5 });
   };
-  const tecLiso = tecido(false), tecPonta = tecido(true);
+  const tecLiso = tecido(false, true), tecPonta = tecido(true, false), tecNo = tecido(false, false);
   const zN = zFrente + 0.05;
   const faixa = add(new RoundedBoxGeometry(0.98, 0.14, 0.05, 4, 0.02), tecLiso); faixa.position.set(0, 0.02, zN);
   for (const lado of [-1, 1]) {
@@ -234,7 +239,7 @@ function montarMedalha(spec, renderer, descartar) {
       gr.position.set(0, -0.06 - k * 0.025, 0.002);
     }
   }
-  const no = add(new RoundedBoxGeometry(0.2, 0.25, 0.09, 5, 0.04), tecLiso); no.position.set(0, 0.02, zN + 0.025);
+  const no = add(new RoundedBoxGeometry(0.2, 0.25, 0.09, 5, 0.04), tecNo); no.position.set(0, 0.02, zN + 0.025);
   const volta = add(new RoundedBoxGeometry(0.21, 0.07, 0.1, 4, 0.03), tecLiso); volta.position.set(0, 0.06, zN + 0.035); volta.rotation.z = -0.35;
 
   // gemas lapidadas (brilhante) com engaste
