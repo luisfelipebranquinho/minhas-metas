@@ -716,8 +716,21 @@ async function recomecar(m){
 /* ---------- configuração ---------- */
 const SUPABASE_URL = "https://pnkrnfhomubigoaiaewy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_uigrVhY1Ss3cjbGDt2h0oQ_OLMgZDpw";
-const DOMINIO = "minhasmetas.app"; // e-mail interno: usuario@minhasmetas.app (nunca recebe mensagens)
 let sb = null;
+let TOKEN = null;
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} };
+async function rpc(fn, args){
+  const { data, error } = await sb.rpc(fn, args);
+  if (error){ if (/sessao_invalida/.test(error.message)) { lsSet("mm_t", null); } throw error; }
+  return data;
+}
+// o servidor nunca recebe a senha: recebe só um "segredo" derivado dela (diferente da chave de criptografia)
+async function segredoLogin(usuario, senha){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(senha), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name:"PBKDF2", salt:new TextEncoder().encode("minhas-metas-login:" + usuario), iterations:150000, hash:"SHA-256" }, base, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
 
 /* ---------- criptografia (AES-GCM com chave derivada da senha) ---------- */
 const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -753,17 +766,13 @@ const deepMerge = (alvo, patch) => {
 const Banco = {
   uid:null, perfil:null, conta:{}, cache:{ metas:new Map(), medalhas:new Map() }, ouvintes:{ metas:new Set(), medalhas:new Set(), conta:new Set() }, filas:{},
   async carregar(){
-    const { data, error } = await sb.from("itens").select("colecao,id,dados,iv");
-    if (error) throw error;
+    const r = await rpc("carregar", { p_token: TOKEN });
     const nov = { metas:new Map(), medalhas:new Map() };
-    for (const r of data){ try { nov[r.colecao].set(r.id, await decifrar(r.dados, r.iv)); } catch(e){ console.warn("item ilegível", r.id); } }
+    for (const it of (r.itens || [])){ try { nov[it.colecao].set(it.id, await decifrar(it.dados, it.iv)); } catch(e){ console.warn("item ilegível", it.id); } }
     this.cache = nov;
-    const { data: pf, error: e2 } = await sb.from("perfis").select("*").eq("user_id", this.uid).maybeSingle();
-    if (e2) throw e2;
-    this.perfil = pf;
     let extra = {};
-    if (pf && pf.dados){ try { extra = await decifrar(pf.dados, pf.iv); } catch(e){} }
-    this.conta = { ...extra, usuario: pf ? pf.usuario : "" };
+    if (r.conta && r.conta.dados){ try { extra = await decifrar(r.conta.dados, r.conta.iv); } catch(e){} }
+    this.conta = { ...extra, usuario: r.conta ? r.conta.usuario : "" };
     this.avisarTudo();
   },
   avisarTudo(){ ["metas","medalhas","conta"].forEach(c => this.avisar(c)); },
@@ -776,15 +785,14 @@ const Banco = {
   fila(chave, fn){ const prev = this.filas[chave] || Promise.resolve(); const nx = prev.then(fn, fn); this.filas[chave] = nx.catch(()=>{}); return nx; },
   async salvarItem(col, id){
     const v = this.cache[col].get(id);
+    if (!v) return;
     const enc = await cifrar(v);
-    const { error } = await sb.from("itens").upsert({ user_id:this.uid, colecao:col, id, dados:enc.dados, iv:enc.iv, atualizado:new Date().toISOString() });
-    if (error) throw error;
+    await rpc("salvar_item", { p_token:TOKEN, p_colecao:col, p_id:id, p_dados:enc.dados, p_iv:enc.iv });
   },
   async salvarConta(){
     const { usuario, ...resto } = this.conta;
     const enc = await cifrar(resto);
-    const { error } = await sb.from("perfis").update({ dados:enc.dados, iv:enc.iv, atualizado:new Date().toISOString() }).eq("user_id", this.uid);
-    if (error) throw error;
+    await rpc("salvar_conta", { p_token:TOKEN, p_dados:enc.dados, p_iv:enc.iv });
   }
 };
 function colecaoRef(col){
@@ -801,7 +809,7 @@ function colecaoRef(col){
         Banco.cache[col].set(id, deepMerge(atual, JSON.parse(JSON.stringify(patch)))); Banco.avisar(col);
         return Banco.fila(col+id, () => Banco.salvarItem(col, id));
       },
-      delete(){ Banco.cache[col].delete(id); Banco.avisar(col); return Banco.fila(col+id, async () => { const { error } = await sb.from("itens").delete().eq("user_id", Banco.uid).eq("colecao", col).eq("id", id); if (error) throw error; }); }
+      delete(){ Banco.cache[col].delete(id); Banco.avisar(col); return Banco.fila(col+id, () => rpc("apagar_item", { p_token:TOKEN, p_colecao:col, p_id:id })); }
     }; }
   };
   return ref;
@@ -818,18 +826,16 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden && S.
 /* ---------- inicialização ---------- */
 async function init(){
   if (!window.supabase){ return renderFatal("Não consegui carregar o site. Verifique a internet e abra de novo."); }
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:false, autoRefreshToken:false } });
   S.contaRef = contaRef;
   S.metasCol = colecaoRef("metas");
-  const { data:{ session } } = await sb.auth.getSession();
-  if (session){
-    Banco.uid = session.user.id;
+  TOKEN = lsGet("mm_t");
+  if (TOKEN){
     CHAVE = await lerChaveSessao();
     if (CHAVE){
       try { await Banco.carregar(); S.conta = { ...Banco.conta }; return entrar(); }
       catch(e){ CHAVE = null; }
     }
-    S.ultimoUsuario = (session.user.email || "").split("@")[0];
   }
   if (!S.ultimoUsuario){ try { S.ultimoUsuario = localStorage.getItem("mm_u") || ""; } catch(e){} }
   S.authMode = S.ultimoUsuario ? "login" : "criar";
@@ -863,7 +869,8 @@ function entrar(){
 }
 async function sair(){
   ss.del("mm_k"); CHAVE = null;
-  try { await sb.auth.signOut(); } catch(e){}
+  try { if (TOKEN) await rpc("sair", { p_token:TOKEN }); } catch(e){}
+  lsSet("mm_t", null); TOKEN = null;
   location.reload();
 }
 
@@ -911,29 +918,25 @@ async function onAuth(ev){
   S.erro = ""; errEl.textContent = ""; btn.disabled = true; btn.textContent = "Aguarde…";
   if (!/^[a-z0-9._-]{3,30}$/.test(u)) return fail("Usuário: 3 a 30 letras minúsculas, números, ponto, hífen ou _.");
   if (p.length < 6) return fail("A senha precisa ter pelo menos 6 caracteres.");
-  const email = `${u}@${DOMINIO}`;
   try {
+    const segredo = await segredoLogin(u, p);
     if (S.authMode === "criar"){
       if (p !== p2) return fail("As senhas não conferem.");
-      const { data, error } = await sb.auth.signUp({ email, password:p });
-      if (error) return fail(/registered|exists/i.test(error.message) ? "Esse usuário já existe. Escolha outro." : "Não consegui criar a conta: " + error.message);
-      if (!data.session) return fail("Conta criada, mas o servidor ainda pede confirmação por e-mail. Falta desligar essa opção no Supabase.");
-      Banco.uid = data.user.id;
       const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
       CHAVE = await derivarChave(p, salt);
       const ver = await cifrar({ ok:"minhas-metas" });
       const extra = await cifrar({ criadaEm: Date.now() });
-      const { error: e2 } = await sb.from("perfis").insert({ user_id:Banco.uid, usuario:u, salt, verificador:ver.dados, verificador_iv:ver.iv, dados:extra.dados, iv:extra.iv });
-      if (e2) return fail("Não consegui salvar o perfil: " + e2.message);
+      try { TOKEN = await rpc("criar_conta", { p_usuario:u, p_segredo:segredo, p_salt:salt, p_ver:ver.dados, p_ver_iv:ver.iv, p_dados:extra.dados, p_iv:extra.iv }); }
+      catch(e){ CHAVE = null; return fail(/usuario_existe/.test(e.message) ? "Esse usuário já existe. Escolha outro." : "Não consegui criar a conta. Tente de novo."); }
     } else {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password:p });
-      if (error) return fail("Usuário ou senha incorretos.");
-      Banco.uid = data.user.id;
-      const { data: pf, error: e2 } = await sb.from("perfis").select("salt,verificador,verificador_iv").eq("user_id", Banco.uid).maybeSingle();
-      if (e2 || !pf) return fail("Não encontrei seu perfil. Tente de novo.");
-      CHAVE = await derivarChave(p, pf.salt);
-      try { await decifrar(pf.verificador, pf.verificador_iv); } catch(e){ CHAVE = null; return fail("Não consegui destrancar seus dados com essa senha."); }
+      const r = await rpc("entrar", { p_usuario:u, p_segredo:segredo });
+      if (r.erro === "bloqueado") return fail("Muitas tentativas erradas. Espere 10 minutos e tente de novo.");
+      if (r.erro) return fail("Usuário ou senha incorretos.");
+      TOKEN = r.token;
+      CHAVE = await derivarChave(p, r.salt);
+      try { await decifrar(r.verificador, r.verificador_iv); } catch(e){ CHAVE = null; return fail("Não consegui destrancar seus dados com essa senha."); }
     }
+    lsSet("mm_t", TOKEN);
     await guardarChaveSessao();
     try { localStorage.setItem("mm_u", u); } catch(e){}
     await Banco.carregar();
