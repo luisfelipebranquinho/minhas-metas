@@ -13,6 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -171,6 +172,21 @@ html.fxb .duo>.fa{visibility:hidden}
 html.fxb .duo>.fb{visibility:visible}
 html.semduo .duo>.fa{-webkit-mask-image:none;mask-image:none;filter:none;visibility:visible}
 html.semduo .duo>.fb{display:none}
+.v3d{position:fixed;inset:0;z-index:40;background:radial-gradient(circle at 50% 40%,#3a2c0c 0%,#120e06 50%,#050505 85%);color:#fff;animation:fade .25s;overflow:hidden}
+.v3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1}
+.v3d .topo{position:absolute;left:0;right:0;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 16px 10px;pointer-events:none}
+.v3d .topo>*{pointer-events:auto}
+.v3d .fechar3d{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;font-size:20px;font-weight:800}
+.v3d .rodape{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:14px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.65));pointer-events:none}
+.v3d .rodape b{font-family:Fraunces,serif;font-size:26px;display:block;background:linear-gradient(180deg,#FFF6D6,#F1C24E 55%,#B07A1A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.v3d .rodape p{font-size:13px;opacity:.8;margin-top:4px;font-weight:600}
+.v3d .rodape button{pointer-events:auto;margin-top:10px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:13px}
+.v3d .cad{position:absolute;inset:0;z-index:2;display:grid;place-items:center;text-align:center;pointer-events:none}
+.v3d .marca{z-index:2}
+.cadeado{display:inline-block;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.14);font-size:12px;font-weight:800;letter-spacing:.06em}
+.duoCanvas{-webkit-mask-image:var(--mA);mask-image:var(--mA);-webkit-mask-size:48px 48px;mask-size:48px 48px;filter:brightness(1.3) saturate(1.1)}
+html.fxb .duoCanvas{-webkit-mask-image:var(--mB);mask-image:var(--mB)}
+html.semduo .duoCanvas{-webkit-mask-image:none;mask-image:none;filter:none}
 .protegido,.protegido *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .protegido svg{pointer-events:none}
 .vitrine{position:relative;overflow:hidden;border-radius:24px;padding:18px 14px 22px;background:radial-gradient(circle at 50% 0%,#3a2c0c,#120e06 60%,#050505);color:#fff;margin-top:12px}
@@ -181,7 +197,7 @@ html.semduo .duo>.fb{display:none}
 .vitrine>*:not(.marca){position:relative;z-index:1}
 .selo{display:block;margin:22px auto 0;width:132px;height:132px}
 .celebra .selo{position:relative;z-index:2;width:112px;height:112px;margin-top:18px;opacity:0;animation:show .6s 2.4s forwards}
-body.blindado .celebra>*,body.blindado .vitrine>*{filter:blur(22px) brightness(.6);transition:filter .1s}
+body.blindado .celebra>*,body.blindado .vitrine>*,body.blindado .v3d>*{filter:blur(22px) brightness(.6);transition:filter .1s}
 .aviso-print{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(5,5,5,.85);color:#fff;text-align:center;padding:30px;font-weight:800;font-size:20px;animation:fade .15s}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes up{from{transform:translateY(20px);opacity:0}}
@@ -431,6 +447,42 @@ function celebrar(med, revisitar){
   document.body.appendChild(el);
   el.querySelector(".c-btn").onclick = () => { el.style.transition="opacity .3s"; el.style.opacity="0"; setTimeout(()=>{ el.remove(); if (!revisitar) proximaCelebracao(); }, 300); };
 }
+/* ---------- medalha 3D ---------- */
+let visor3d = null;
+function abrir3D({ marco, faixa, med }){
+  const mk = MARCOS[marco], t = tierOf(faixa);
+  const bloqueada = !med;
+  const g = graduacao();
+  const ano = med && med.ts ? new Date(med.ts).getFullYear() : new Date().getFullYear();
+  const spec = {
+    marcoNome: mk.nome, metal: mk.metal, gemas: !!mk.gems, dias: mk.d,
+    faixaNome: t.nome, cores: t.cores, pont: t.pont, graus: (faixa === g.idx && !med) ? g.graus : 0,
+    dono: (S.conta && S.conta.usuario) || "", titulo: med ? med.titulo : "", data: med ? `${fmtDate(med.em)} ${ano}` : "",
+    codigo: med ? codigoMedalha(med.metaId + med.inicio + med.marco) : "", bloqueada
+  };
+  const el = document.createElement("div");
+  el.className = "v3d protegido";
+  el.innerHTML = `${marcaDagua()}<canvas class="duoCanvas" aria-label="Medalha ${esc(mk.nome)} em 3D"></canvas>
+    <div class="cad" id="cad3d"><div><div class="spin" style="border-color:rgba(255,255,255,.15);border-top-color:#F1C24E"></div><p class="small" style="opacity:.75">Forjando a medalha…</p></div></div>
+    <div class="topo"><span class="cadeado">${bloqueada ? "🔒 BLOQUEADA" : "🏅 CONQUISTADA"}</span><button class="fechar3d" aria-label="Fechar">✕</button></div>
+    <div class="rodape"><b>${esc(mk.nome)} seguidos</b>
+      <p>${bloqueada ? `Complete ${mk.d} dias seguidos em um desafio para conquistar` : `${esc(med.emoji||"🎯")} ${esc(med.titulo)} · ${fmtDate(med.em)}`}</p>
+      <p style="opacity:.55">Arraste para girar · pinça para dar zoom</p>
+      <button class="reset3d">↺ Centralizar</button></div>`;
+  document.body.appendChild(el);
+  const fechar = () => { try { visor3d && visor3d.fechar(); } catch(e){} visor3d = null; el.remove(); };
+  el.querySelector(".fechar3d").onclick = fechar;
+  el.querySelector(".reset3d").onclick = () => visor3d && visor3d.resetar();
+  Promise.all([import("./medalha3d.js?v=3"), document.fonts ? document.fonts.ready : null]).then(([mod]) => {
+    if (!el.isConnected) return;
+    visor3d = mod.abrirVisualizador(el.querySelector("canvas"), spec);
+    setTimeout(() => { const c = document.getElementById("cad3d"); c && c.remove(); }, 250);
+  }).catch(() => {
+    const c = document.getElementById("cad3d");
+    if (c) c.innerHTML = `<div style="padding:30px"><div style="font-size:40px">😕</div><p style="margin-top:8px">Não consegui abrir a medalha em 3D. Verifique a internet e tente de novo.</p></div>`;
+  });
+}
+
 const filaCelebra = [];
 let celebrando = false;
 function enfileirar(med){ filaCelebra.push(med); if (!celebrando) proximaCelebracao(); }
@@ -606,10 +658,10 @@ function renderMedalhas(){
   let cells = "";
   MARCOS.forEach((mk, i) => {
     const ganhas = S.medalhas.filter(x => x.marco === i).sort((a,b) => (b.ts||0) - (a.ts||0));
-    if (ganhas.length) cells += `<button class="medcell" data-act="verMedalha" data-mid="${esc(ganhas[0].id)}" style="position:relative">
+    if (ganhas.length) cells += `<button class="medcell" data-act="ver3d" data-mid="${esc(ganhas[0].id)}" style="position:relative">
       ${ganhas.length > 1 ? `<span class="medbadge" style="position:absolute;top:10px;right:10px">×${ganhas.length}</span>` : ""}
       ${medalDuo(ganhas[0].faixa, { marco:i, size:104, anim:false })}<b>${esc(mk.nome)}</b><span>${ganhas.length} conquistada${ganhas.length>1?"s":""}</span></button>`;
-    else cells += `<div class="medcell lock">${medalSVG(g.idx, { marco:i, size:104, anim:false })}<b class="muted">${esc(mk.nome)}</b><span>${mk.d} dias seguidos</span></div>`;
+    else cells += `<button class="medcell lock" data-act="ver3d" data-marco="${i}">${medalSVG(g.idx, { marco:i, size:104, anim:false })}<b class="muted">🔒 ${esc(mk.nome)}</b><span>Toque para ver em 3D</span></button>`;
   });
   const hist = [...S.medalhas].sort((a,b) => (b.ts||0) - (a.ts||0));
   $app.innerHTML = `${header("Medalhas", "inicio")}
@@ -617,7 +669,7 @@ function renderMedalhas(){
     ${cardFaixa(g, true)}
     <h3 style="font-size:19px;margin:22px 0 0">Coleção · ${S.medalhas.length}</h3>
     <div class="vitrine protegido">${marcaDagua()}<div class="medgrid">${cells}</div>${seloQR()}</div>
-    ${hist.length ? `<div class="card today-list"><h3>Histórico</h3>${hist.map(x => `<button class="trow" style="width:100%;text-align:left" data-act="verMedalha" data-mid="${esc(x.id)}">
+    ${hist.length ? `<div class="card today-list"><h3>Histórico</h3>${hist.map(x => `<button class="trow" style="width:100%;text-align:left" data-act="ver3d" data-mid="${esc(x.id)}">
       <span style="flex:none">${medalDuo(x.faixa, { marco:x.marco, size:26, anim:false })}</span>
       <span style="min-width:0"><b>${esc(MARCOS[x.marco].nome)}</b><br><span class="small muted">${esc(x.emoji)} ${esc(x.titulo)}</span></span>
       <span class="small muted" style="margin-left:auto;font-weight:700">${fmtDate(x.em)}</span></button>`).join("")}</div>` : ""}`;
@@ -1173,7 +1225,7 @@ function blocoMedalha(m){
   if (!ganhas.length && !prox) return "";
   return `<div class="card" style="margin-top:14px;background:linear-gradient(135deg,#1a1408,#3a2c0c);color:#fff">
     <div class="small" style="letter-spacing:.2em;font-weight:800;color:#F4D27A">MEDALHAS DESTE DESAFIO</div>
-    ${ganhas.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${ganhas.map(x => `<button data-act="verMedalha" data-mid="${esc(x.id)}" aria-label="${esc(MARCOS[x.marco].nome)}">${medalDuo(x.faixa, { marco:x.marco, size:52, anim:false })}</button>`).join("")}</div>` : ""}
+    ${ganhas.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${ganhas.map(x => `<button data-act="ver3d" data-mid="${esc(x.id)}" aria-label="${esc(MARCOS[x.marco].nome)}">${medalDuo(x.faixa, { marco:x.marco, size:52, anim:false })}</button>`).join("")}</div>` : ""}
     ${prox ? `<p class="small" style="margin-top:10px;opacity:.85;font-weight:600">Próxima: <b>${esc(prox.nome)}</b> seguidos · faltam ${Math.max(1, prox.d - c.seq)} dia${prox.d - c.seq === 1 ? "" : "s"} na sequência atual (🔥 ${c.seq})</p>` : `<p class="small" style="margin-top:10px;opacity:.85;font-weight:700">Todas as medalhas deste desafio conquistadas! 🏆</p>`}
   </div>`;
 }
@@ -1369,7 +1421,7 @@ function abrirNova(){
 }
 
 /* ---------- proteção das medalhas ---------- */
-const temMedalhaNaTela = () => !!document.querySelector(".celebra, .vitrine");
+const temMedalhaNaTela = () => !!document.querySelector(".celebra, .vitrine, .v3d");
 ["contextmenu","dragstart","selectstart","copy"].forEach(t => document.addEventListener(t, e => { if (e.target.closest && e.target.closest(".protegido")) e.preventDefault(); }));
 function blindar(on){ document.body.classList.toggle("blindado", on); }
 document.addEventListener("visibilitychange", () => { if (document.hidden) blindar(true); else setTimeout(() => blindar(false), 350); });
@@ -1401,6 +1453,11 @@ document.addEventListener("click", ev => {
   if (act === "criarConta"){ S.authMode = "criar"; S.erro=""; return render(); }
   if (act === "voltarLogin"){ S.authMode = "login"; S.erro=""; return render(); }
   if (act === "verFaixa"){ const g = graduacao(); celebrar({ kind:"faixa", faixa:g.idx, total:g.total, graus:g.graus }, true); return; }
+  if (act === "ver3d"){
+    if (el.dataset.mid){ const g = S.medalhas.find(x => x.id === el.dataset.mid); if (g) abrir3D({ marco:g.marco, faixa:g.faixa, med:g }); }
+    else abrir3D({ marco:+el.dataset.marco, faixa:graduacao().idx, med:null });
+    return;
+  }
   if (act === "verMedalha"){ const g = S.medalhas.find(x => x.id === el.dataset.mid); if (g) celebrar(g, true); return; }
   if (act === "abrir"){ S.metaId = el.dataset.id; S.view = "meta"; render(); window.scrollTo(0,0); return; }
   if (act === "nova") return abrirNova();
