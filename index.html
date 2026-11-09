@@ -163,6 +163,14 @@ label{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
 .medcell b{font-size:14px;margin-top:6px}
 .medcell span{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 .medbadge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:800;padding:4px 9px;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E2B13C);color:#4a3000}
+.duo{position:relative;display:inline-block;line-height:0;vertical-align:middle}
+.duo>.fa,.duo>.fb{display:block;-webkit-mask-size:48px 48px;mask-size:48px 48px;-webkit-mask-repeat:repeat;mask-repeat:repeat;filter:brightness(1.3) saturate(1.15)}
+.duo>.fa{-webkit-mask-image:var(--mA);mask-image:var(--mA)}
+.duo>.fb{position:absolute;inset:0;-webkit-mask-image:var(--mB);mask-image:var(--mB);visibility:hidden}
+html.fxb .duo>.fa{visibility:hidden}
+html.fxb .duo>.fb{visibility:visible}
+html.semduo .duo>.fa{-webkit-mask-image:none;mask-image:none;filter:none;visibility:visible}
+html.semduo .duo>.fb{display:none}
 .protegido,.protegido *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .protegido svg{pointer-events:none}
 .vitrine{position:relative;overflow:hidden;border-radius:24px;padding:18px 14px 22px;background:radial-gradient(circle at 50% 0%,#3a2c0c,#120e06 60%,#050505);color:#fff;margin-top:12px}
@@ -253,6 +261,38 @@ function seloQR(){ // QR discreto: quem fotografar a tela com outro celular rece
   return `<svg class="selo" viewBox="0 0 ${t} ${t}" shape-rendering="crispEdges" aria-hidden="true"><rect width="${t}" height="${t}" rx="2" fill="#F4D27A" opacity=".24"/><path transform="translate(${q} ${q})" d="${QR_D}" fill="#0b0904"/></svg>`;
 }
 function codigoMedalha(id){ let h = 2166136261; for (const ch of String(id)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } const x = (h>>>0).toString(16).toUpperCase().padStart(8,"0"); return `#${x.slice(0,4)}-${x.slice(4)}`; }
+/* drible das duas metades: cada metade da imagem aparece em quadros alternados.
+   O olho junta as duas; o print pega só uma (fica quebrado). */
+function duo(fn, nivel, opts){
+  return `<span class="duo">` + `<span class="fa">${fn(nivel, { ...opts, begin:"0" })}</span><span class="fb">${fn(nivel, { ...opts, begin:"0" })}</span></span>`;
+}
+const medalDuo = (n, o) => duo(medalSVG, n, o);
+const faixaDuo = (n, o) => duo(faixaSVG, n, o);
+(function iniciarDuo(){
+  const N = 16, C = 3, cvA = document.createElement("canvas"), cvB = document.createElement("canvas");
+  cvA.width = cvA.height = cvB.width = cvB.height = N * C;
+  const a = cvA.getContext("2d"), b = cvB.getContext("2d");
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++){
+    const on = Math.random() < .5;
+    (on ? a : b).fillRect(x*C, y*C, C, C);
+  }
+  const raiz = document.documentElement.style;
+  raiz.setProperty("--mA", `url(${cvA.toDataURL()})`);
+  raiz.setProperty("--mB", `url(${cvB.toDataURL()})`);
+  const reduz = matchMedia("(prefers-reduced-motion: reduce)");
+  let ult = 0, lentos = 0, rapidos = 0, par = false;
+  function quadro(t){
+    const dt = ult ? t - ult : 16; ult = t;
+    // se a tela estiver lenta (ex.: modo economia), piscar ficaria visível: mostra a imagem normal
+    if (dt > 26) { lentos++; rapidos = 0; } else { rapidos++; if (rapidos > 30) lentos = 0; }
+    const desliga = lentos > 6 || reduz.matches;
+    document.documentElement.classList.toggle("semduo", desliga);
+    par = !par;
+    document.documentElement.classList.toggle("fxb", par && !desliga);
+    requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+})();
 function marcaDagua(){ const nome = (S.conta && S.conta.usuario) || ""; const txt = esc(`${nome} · ${fmtDate(todayKey())} · MINHAS METAS`.toUpperCase()); return `<div class="marca" aria-hidden="true">${Array(60).fill(`<span>${txt}</span>`).join("")}</div>`; }
 function medalSVG(nivel, opts = {}){
   const t = tierOf(nivel), mk = MARCOS[Math.min(opts.marco ?? 0, MARCOS.length-1)];
@@ -276,7 +316,7 @@ function medalSVG(nivel, opts = {}){
   const gemas = mk.gems ? [0,90,180,270].map(g => { const a=(g-90)*Math.PI/180, x=100+72*Math.cos(a), y=190+72*Math.sin(a);
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2" fill="url(#${id}gem)" stroke="${M.d}" stroke-width="1"/><circle cx="${(x-1.3).toFixed(1)}" cy="${(y-1.4).toFixed(1)}" r="1.2" fill="#fff" opacity=".9"/>`; }).join("") : "";
   const brilho = opts.anim !== false ? `<g clip-path="url(#${id}clip)"><rect x="-160" y="80" width="46" height="240" fill="url(#${id}shine)" transform="rotate(20 100 190)">
-      <animate attributeName="x" values="-160;260;260" keyTimes="0;.45;1" dur="3.6s" begin="${(Math.random()*1.5).toFixed(2)}s" repeatCount="indefinite"/></rect></g>` : "";
+      <animate attributeName="x" values="-160;260;260" keyTimes="0;.45;1" dur="3.6s" begin="${opts.begin ?? (Math.random()*1.5).toFixed(2)}s" repeatCount="indefinite"/></rect></g>` : "";
   const textoCor = (c1 === "#F7F5EE") ? "#1a1a1a" : "#fff";
   const diasTxt = opts.sub ? `<text x="100" y="166" text-anchor="middle" font-family="Manrope,sans-serif" font-weight="800" font-size="8.5" letter-spacing="1.6" fill="${M.enamel ? "#FFE79A" : IN.d}" opacity=".9">${esc(opts.sub).toUpperCase()}</text>` : "";
   return `<svg width="${size}" height="${size*1.4}" viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg" aria-label="Medalha ${mk.nome}">
@@ -375,8 +415,8 @@ function celebrar(med, revisitar){
   }
   let sparks = "";
   for (let i=0;i<10;i++) sparks += `<i class="spark" style="left:${15+Math.random()*70}%;top:${12+Math.random()*50}%;animation-delay:${(1.8+Math.random()*2).toFixed(2)}s"></i>`;
-  const arte = ehFaixa ? faixaSVG(med.faixa, { size: Math.min(280, window.innerWidth*0.72), graus: revisitar ? (med.graus||0) : 0 })
-                       : medalSVG(med.faixa ?? 0, { marco: med.marco, size: Math.min(210, window.innerWidth*0.52), sub: t.nome });
+  const arte = ehFaixa ? faixaDuo(med.faixa, { size: Math.min(280, window.innerWidth*0.72), graus: revisitar ? (med.graus||0) : 0 })
+                       : medalDuo(med.faixa ?? 0, { marco: med.marco, size: Math.min(210, window.innerWidth*0.52), sub: t.nome });
   const kicker = ehFaixa ? (revisitar ? "SUA GRADUAÇÃO" : "NOVA GRADUAÇÃO") : (revisitar ? "MEDALHA" : "MEDALHA CONQUISTADA");
   const titulo = ehFaixa ? t.nome : `${mk.nome} seguidos`;
   const dono = esc((S.conta && S.conta.usuario) || "");
@@ -550,7 +590,7 @@ async function verificarMedalhas(){
 function cardFaixa(g, grande){
   const pct = Math.round(g.frac * 100);
   return `<button class="card" data-act="verFaixa" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;${grande?"background:linear-gradient(135deg,#1a1408,#3a2c0c);color:#fff":""}">
-    <div style="flex:none">${faixaSVG(g.idx, { size: grande ? 110 : 84, graus: g.graus })}</div>
+    <div style="flex:none">${faixaDuo(g.idx, { size: grande ? 110 : 84, graus: g.graus })}</div>
     <div style="flex:1;min-width:0">
       <div class="small" style="letter-spacing:.18em;font-weight:800;color:${grande?"#F4D27A":"var(--muted)"}">SUA GRADUAÇÃO</div>
       <div style="font-family:Fraunces;font-size:${grande?26:21}px;line-height:1.1;margin-top:2px">${esc(g.nome)}</div>
@@ -567,7 +607,7 @@ function renderMedalhas(){
     const ganhas = S.medalhas.filter(x => x.marco === i).sort((a,b) => (b.ts||0) - (a.ts||0));
     if (ganhas.length) cells += `<button class="medcell" data-act="verMedalha" data-mid="${esc(ganhas[0].id)}" style="position:relative">
       ${ganhas.length > 1 ? `<span class="medbadge" style="position:absolute;top:10px;right:10px">×${ganhas.length}</span>` : ""}
-      ${medalSVG(ganhas[0].faixa, { marco:i, size:104, anim:false })}<b>${esc(mk.nome)}</b><span>${ganhas.length} conquistada${ganhas.length>1?"s":""}</span></button>`;
+      ${medalDuo(ganhas[0].faixa, { marco:i, size:104, anim:false })}<b>${esc(mk.nome)}</b><span>${ganhas.length} conquistada${ganhas.length>1?"s":""}</span></button>`;
     else cells += `<div class="medcell lock">${medalSVG(g.idx, { marco:i, size:104, anim:false })}<b class="muted">${esc(mk.nome)}</b><span>${mk.d} dias seguidos</span></div>`;
   });
   const hist = [...S.medalhas].sort((a,b) => (b.ts||0) - (a.ts||0));
@@ -577,7 +617,7 @@ function renderMedalhas(){
     <h3 style="font-size:19px;margin:22px 0 0">Coleção · ${S.medalhas.length}</h3>
     <div class="vitrine protegido">${marcaDagua()}<div class="medgrid">${cells}</div>${seloQR()}</div>
     ${hist.length ? `<div class="card today-list"><h3>Histórico</h3>${hist.map(x => `<button class="trow" style="width:100%;text-align:left" data-act="verMedalha" data-mid="${esc(x.id)}">
-      <span style="flex:none">${medalSVG(x.faixa, { marco:x.marco, size:26, anim:false })}</span>
+      <span style="flex:none">${medalDuo(x.faixa, { marco:x.marco, size:26, anim:false })}</span>
       <span style="min-width:0"><b>${esc(MARCOS[x.marco].nome)}</b><br><span class="small muted">${esc(x.emoji)} ${esc(x.titulo)}</span></span>
       <span class="small muted" style="margin-left:auto;font-weight:700">${fmtDate(x.em)}</span></button>`).join("")}</div>` : ""}`;
 }
@@ -969,7 +1009,7 @@ function renderInicio(){
       <span class="chev">${ICON.chev}</span>
     </button>
     <button class="card bigmenu" style="margin-top:12px" data-act="go" data-v="medalhas">
-      <div class="ic" style="background:#1a1408;overflow:hidden">${faixaSVG(graduacao().idx, { size: 50, graus: graduacao().graus })}</div>
+      <div class="ic" style="background:#1a1408;overflow:hidden">${faixaDuo(graduacao().idx, { size: 50, graus: graduacao().graus })}</div>
       <div><h3>Medalhas</h3><p class="muted small" style="margin-top:3px">${esc(graduacao().nome)}${graduacao().graus ? ` · ${graduacao().graus} grau${graduacao().graus>1?"s":""}` : ""} · ${S.medalhas.length} medalha${S.medalhas.length===1?"":"s"}</p></div>
       <span class="chev">${ICON.chev}</span>
     </button>
@@ -1117,7 +1157,7 @@ function blocoMedalha(m){
   if (!ganhas.length && !prox) return "";
   return `<div class="card" style="margin-top:14px;background:linear-gradient(135deg,#1a1408,#3a2c0c);color:#fff">
     <div class="small" style="letter-spacing:.2em;font-weight:800;color:#F4D27A">MEDALHAS DESTE DESAFIO</div>
-    ${ganhas.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${ganhas.map(x => `<button data-act="verMedalha" data-mid="${esc(x.id)}" aria-label="${esc(MARCOS[x.marco].nome)}">${medalSVG(x.faixa, { marco:x.marco, size:52, anim:false })}</button>`).join("")}</div>` : ""}
+    ${ganhas.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${ganhas.map(x => `<button data-act="verMedalha" data-mid="${esc(x.id)}" aria-label="${esc(MARCOS[x.marco].nome)}">${medalDuo(x.faixa, { marco:x.marco, size:52, anim:false })}</button>`).join("")}</div>` : ""}
     ${prox ? `<p class="small" style="margin-top:10px;opacity:.85;font-weight:600">Próxima: <b>${esc(prox.nome)}</b> seguidos · faltam ${Math.max(1, prox.d - c.seq)} dia${prox.d - c.seq === 1 ? "" : "s"} na sequência atual (🔥 ${c.seq})</p>` : `<p class="small" style="margin-top:10px;opacity:.85;font-weight:700">Todas as medalhas deste desafio conquistadas! 🏆</p>`}
   </div>`;
 }
